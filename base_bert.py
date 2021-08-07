@@ -20,9 +20,9 @@ def train_base():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = BertForSequenceClassification.from_pretrained(
         "bert-base-uncased",
-        num_labels=3,
+        num_labels=2,
         output_attentions=False,
-        output_hidden_states=False
+        output_hidden_states=False,
     )
     model.to(device)
 
@@ -59,7 +59,7 @@ def train_base():
             model_out = model(ids,
                               token_type_ids=None,
                               attention_mask=masks,
-                              labels=labels
+                              labels=labels,
                               )
             loss = model_out.loss
             loss.backward()

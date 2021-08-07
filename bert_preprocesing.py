@@ -33,12 +33,12 @@ def make_tokenizer():
 def make_2_kinds_data_set(raw_data,batch_size:int=24):
 
 
-    claim = '[CLS] ' + raw_data['text'] + '[SEP]'
-    perspective = raw_data['perspective'] + '[SEP]'
+    claim = '[CLS] ' + raw_data['text'].str.strip() + ' [SEP]'
+    perspective = raw_data['perspective'].str.strip() + ' [SEP]'
     together = claim + perspective
 
-    le = preprocessing.LabelEncoder()
-    label =le.fit_transform(raw_data['stance_label_3'])
+
+    label =[1 if single_label=='supports' else 0 for single_label in raw_data['stance_label_3'] ]
 
     preprocessor = make_tokenizer()
 
