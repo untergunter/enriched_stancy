@@ -5,7 +5,7 @@ from prep import get_paper_train_dev_test
 from test_model import test_model
 from transformers import BertForSequenceClassification,AdamW
 import torch
-from sklearn.metrics import f1_score,accuracy_score
+from sklearn.metrics import f1_score,accuracy_score,recall_score,precision_score
 from datetime import datetime
 
 def train_base():
@@ -33,22 +33,25 @@ def train_base():
     losses = []
     f1s = []
     accuracy_list = []
+    recalls = []
     seconds = []
     epochs = []
 
     # add the basic performance
     y_true, y_pred = test_model(model, dev_together_only_loader, device)
     weighted_f1 = f1_score(y_true, y_pred, average='weighted')
-    accuracy = accuracy_score(y_true, y_pred)
+    precision = precision_score(y_true, y_pred)
+    recall = recall_score(y_true, y_pred)
 
     losses.append(-1)
     f1s.append(weighted_f1)
-    accuracy_list.append(accuracy)
+    accuracy_list.append(precision)
+    recalls.append(recall)
     seconds.append(-1)
     epochs.append(-1)
-    print(f'epoch:{-1}, loss:{-1}, f1:{weighted_f1} ,accuracy:{accuracy} ,seconds:{-1}')
+    print(f'epoch:{-1}, loss:{-1}, f1:{weighted_f1} ,precision:{precision} ,recall:{recall} ,seconds:{-1}')
 
-    for epoch in range(10):
+    for epoch in range(3):
         start_time = datetime.now()
         total_loss = 0
         for batch in train_together_only_loader:
@@ -71,31 +74,40 @@ def train_base():
         total_seconds = (end_time-start_time).seconds
 
         weighted_f1 = f1_score(y_true, y_pred, average='weighted')
-        accuracy = accuracy_score(y_true, y_pred)
+        precision = precision_score(y_true, y_pred)
+        recall = recall_score(y_true, y_pred)
 
         seconds.append(total_seconds)
         losses.append(total_loss)
         f1s.append(weighted_f1)
-        accuracy_list.append(accuracy)
+        recalls.append(recall)
+        accuracy_list.append(precision)
         epochs.append(epoch)
 
 
-        print(f'epoch:{epoch}, loss:{total_loss}, f1:{weighted_f1} ,accuracy:{accuracy} ,seconds:{total_seconds}')
+        print(f'epoch:{epoch}, loss:{total_loss}, f1:{weighted_f1} ,precision:{precision} ,recall:{recall} ,seconds:{total_seconds}')
 
 
-    # add the basic performance
+    # add the test set performance
     y_true, y_pred = test_model(model, test_together_only_loader, device)
     weighted_f1 = f1_score(y_true, y_pred, average='weighted')
-    accuracy = accuracy_score(y_true, y_pred)
+    precision = precision_score(y_true, y_pred)
+    recall = recall_score(y_true, y_pred)
 
     losses.append(-2)
     f1s.append(weighted_f1)
-    accuracy_list.append(accuracy)
+    accuracy_list.append(precision)
+    recalls.append(recall)
     seconds.append(-2)
     epochs.append(-2)
-    print(f'epoch:{-2}, loss:{-2}, f1:{weighted_f1} ,accuracy:{accuracy} ,seconds:{-2}')
+    print(f'epoch:{-2}, loss:{-2}, f1:{weighted_f1} ,precision:{precision}  ,recall:{recall} ,seconds:{-2}')
 
-    results_df = pd.DataFrame({"epoch":epochs,'loss':losses,'f1':f1s,'accuracy':accuracy_list,'seconds':total_seconds})
+    results_df = pd.DataFrame({"epoch":epochs,
+                               'loss':losses,
+                               'f1':f1s,
+                               'precision':accuracy_list,
+                               'recall':recalls,
+                               'seconds':total_seconds})
     results_df.to_csv('results/base_bert_results.csv',index=False)
 
 if __name__ == '__main__':
