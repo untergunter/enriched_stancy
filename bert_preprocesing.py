@@ -15,8 +15,10 @@ def make_tokenizer():
         for input_string in list_of_strings:
             encoded = tknzr.encode_plus(input_string,
                                         add_special_tokens=False,
+                                        truncation=True,
+                                        padding='max_length',
                                         max_length=100,
-                                        pad_to_max_length=True,
+
                                         return_attention_mask=True,
                                         return_tensors='pt'
                                         )

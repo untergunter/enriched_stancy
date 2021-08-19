@@ -16,6 +16,7 @@ class BertForSequenceClassificationDualLoss(nn.Module):
         self.classifier = nn.Linear(hidden_size + 1, 2) # +1 for the cos distance
         self.cosine = nn.CosineSimilarity()
         self.alpha = 0.5
+
     def forward(self, combined_ids,combined_attention,claim_ids,claim_attention, labels=None, sim_labels=None):
 
         combined_out = self.bert(combined_ids,
