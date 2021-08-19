@@ -1,6 +1,6 @@
 import torch
 
-def test_model(model,dataloader,device):
+def test_basic_model(model, dataloader, device):
     y_true = []
     y_pred = []
     with torch.no_grad():
@@ -16,4 +16,27 @@ def test_model(model,dataloader,device):
             class_predicted = torch.argmax(model_out['logits'], dim=1)
             y_true += [int(label) for label in labels]
             y_pred += [int(label) for label in class_predicted]
+    return y_true,y_pred
+
+
+def test_consistency_model(model, dataloader, device):
+    y_true = []
+    y_pred = []
+    model.eval()
+    with torch.no_grad():
+        for batch in dataloader:
+            together_ids, together_masks, claim_ids, claim_masks, labels = batch
+            together_ids = together_ids.to(device)
+            together_masks = together_masks.to(device)
+            claim_ids = claim_ids.to(device)
+            claim_masks = claim_masks.to(device)
+            labels = labels.to(device)
+
+            model_prediction = model.predict(together_ids,
+                              together_masks,
+                              claim_ids,
+                              claim_masks,
+                              )
+            y_true += [int(label) for label in labels]
+            y_pred += [int(label) for label in model_prediction]
     return y_true,y_pred

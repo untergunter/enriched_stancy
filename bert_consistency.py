@@ -1,31 +1,27 @@
-import pandas as pd
-
 from bert_preprocesing import make_2_kinds_data_set
 from prep import get_paper_train_dev_test
-from test_model import test_basic_model
-from transformers import BertForSequenceClassification,AdamW
+from models import DoubleLoss
+from test_model import test_consistency_model
+import torch
+from transformers import AdamW
 import torch
 from sklearn.metrics import f1_score,accuracy_score,recall_score,precision_score
 from datetime import datetime
+import pandas as pd
 
-def train_base():
+
+def train_consistency():
+
     train, dev, test = get_paper_train_dev_test()
     train_together_only_loader, train_together_and_claim_loader = \
-        make_2_kinds_data_set(train)
+        make_2_kinds_data_set(train,12)
     dev_together_only_loader, dev_together_and_claim_loader = \
-        make_2_kinds_data_set(dev)
+        make_2_kinds_data_set(dev,12)
     test_together_only_loader, test_together_and_claim_loader = \
-        make_2_kinds_data_set(test)
+        make_2_kinds_data_set(test,12)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = BertForSequenceClassification.from_pretrained(
-        "bert-base-uncased",
-        num_labels=2,
-        output_attentions=False,
-        output_hidden_states=False,
-    )
-    model.to(device)
-
+    model = DoubleLoss(device).to(device)
     optimizer = AdamW(model.parameters(),
                       lr=2e-5,
                       eps=1e-8
@@ -38,7 +34,7 @@ def train_base():
     epochs = []
 
     # add the basic performance
-    y_true, y_pred = test_basic_model(model, dev_together_only_loader, device)
+    y_true, y_pred = test_consistency_model(model, dev_together_and_claim_loader, device)
     weighted_f1 = f1_score(y_true, y_pred, average='weighted')
     precision = precision_score(y_true, y_pred)
     recall = recall_score(y_true, y_pred)
@@ -51,25 +47,31 @@ def train_base():
     epochs.append(-1)
     print(f'epoch:{-1}, loss:{-1}, f1:{weighted_f1} ,precision:{precision} ,recall:{recall} ,seconds:{-1}')
 
-    for epoch in range(3):
+    for epoch in range(8):
         start_time = datetime.now()
         total_loss = 0
-        for batch in train_together_only_loader:
+        for batch in train_together_and_claim_loader:
             model.zero_grad()
-            ids = batch[0].to(device)
-            masks = batch[1].to(device)
-            labels = batch[2].to(device)
-            model_out = model(ids,
-                              token_type_ids=None,
-                              attention_mask=masks,
-                              labels=labels,
-                              )
-            loss = model_out.loss
+            together_ids, together_masks, claim_ids, claim_masks, labels = batch
+
+            together_ids = together_ids.to(device)
+            together_masks = together_masks.to(device)
+            claim_ids = claim_ids.to(device)
+            claim_masks = claim_masks.to(device)
+            labels = labels.to(device)
+
+            loss = model(
+                        together_ids,
+                        together_masks,
+                        claim_ids,
+                        claim_masks,
+                        labels
+                        )
             loss.backward()
             total_loss += loss.item()
             optimizer.step()
 
-        y_true, y_pred = test_basic_model(model, dev_together_only_loader, device)
+        y_true, y_pred = test_consistency_model(model, dev_together_and_claim_loader, device)
         end_time = datetime.now()
         total_seconds = (end_time-start_time).seconds
 
@@ -89,7 +91,7 @@ def train_base():
 
 
     # add the test set performance
-    y_true, y_pred = test_basic_model(model, test_together_only_loader, device)
+    y_true, y_pred = test_consistency_model(model, test_together_and_claim_loader, device)
     weighted_f1 = f1_score(y_true, y_pred, average='weighted')
     precision = precision_score(y_true, y_pred)
     recall = recall_score(y_true, y_pred)
@@ -108,7 +110,7 @@ def train_base():
                                'precision':accuracy_list,
                                'recall':recalls,
                                'seconds':total_seconds})
-    results_df.to_csv('results/base_bert_results.csv',index=False)
+    results_df.to_csv('results/bert_consistency_results.csv',index=False)
 
 if __name__ == '__main__':
-    train_base()
+    train_consistency()
