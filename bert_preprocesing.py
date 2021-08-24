@@ -86,3 +86,5 @@ if __name__ =='__main__':
         make_2_kinds_data_set(dev)
     test_together_only_loader,test_together_and_claim_loader =\
         make_2_kinds_data_set(dev)
+
+
