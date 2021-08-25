@@ -9,14 +9,14 @@ from transformers import BertTokenizer,AdamW,BertConfig,BertModel
 from torch.utils.data import TensorDataset,DataLoader,RandomSampler
 from torch.nn import CrossEntropyLoss, CosineEmbeddingLoss
 from sklearn.metrics import f1_score,recall_score,precision_score
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 
 #%%
 
 def test_consistency_model(model, dataloader, device):
     y_true = []
     y_pred = []
-    model.eval()
+    # model.eval()
     with torch.no_grad():
         for batch in dataloader:
             together_ids, together_masks, claim_ids, claim_masks, labels = batch
@@ -112,13 +112,15 @@ def make_2_kinds_data_set(raw_data,batch_size:int=24):
     together_only_loader = DataLoader(
         together_only_dataset,
         sampler=RandomSampler(together_only_dataset),
-        batch_size=batch_size
+        batch_size=batch_size,
+        num_workers=3
     )
 
     together_and_claim_loader = DataLoader(
         together_and_claim_dataset,
         sampler=RandomSampler(together_and_claim_dataset),
-        batch_size=batch_size
+        batch_size=batch_size,
+        num_workers = 3
     )
 
     # together_only_loader->claim_ids, claim_masks, labels
@@ -154,14 +156,14 @@ class DoubleLoss(nn.Module):
                                               config=bert_config)
         self.stance = nn.Linear(769, 2)
         self.cosine = nn.CosineSimilarity()
-        self.dropout = nn.Dropout(0.1)
+        # self.dropout = nn.Dropout(0.1)
         self.similarity_cosine_loss = CosineEmbeddingLoss()
         self.stance_loss_func = CrossEntropyLoss()
 
     def forward(self, both_ids, both_mask, claim_ids, claim_mask,labels = None):
 
         both_hs = self.bert(both_ids, attention_mask=both_mask).pooler_output
-        both_hs = self.dropout(both_hs)
+        # both_hs = self.dropout(both_hs)
 
         claim_hs = self.bert(claim_ids, attention_mask=claim_mask).pooler_output
 
@@ -175,15 +177,15 @@ class DoubleLoss(nn.Module):
 
             stance_loss = \
                 self.stance_loss_func(probabilities.view(-1,2),
-                                 labels.view(-1))
+                                      labels.view(-1))
 
             # second loss
             similarity_labels = torch.ones(labels.shape,device=self.device)
             similarity_labels[ labels == 0 ] = -1
 
             loss_claim = self.similarity_cosine_loss(both_hs,
-                                                 claim_hs,
-                                                 similarity_labels.float())
+                                                     claim_hs,
+                                                     similarity_labels.float())
 
             loss = stance_loss + loss_claim
 
@@ -192,8 +194,8 @@ class DoubleLoss(nn.Module):
         return combined, probabilities
 
     def predict(self,both_ids, both_mask, claim_ids, claim_mask):
-        combined, probabilities = self.forward(both_ids, both_mask, claim_ids, claim_mask)
-        _, predicted = torch.max(probabilities, 1)
+        _ , probabilities = self.forward(both_ids, both_mask, claim_ids, claim_mask)
+        predicted = torch.argmax(probabilities, dim=1)
         return predicted
 
 #%%
@@ -216,25 +218,14 @@ def train_consistency(batch_size,lr,eps):
                       eps=eps
                       )
 
-
-    # add the basic performance
-    y_true, y_pred = test_consistency_model(model, test_together_and_claim_loader, device)
-    weighted_f1 = f1_score(y_true, y_pred, average='weighted')
-    precision = precision_score(y_true, y_pred)
-    recall = recall_score(y_true, y_pred)
-
-    add_to_result_csv(-1,weighted_f1,precision,recall,-1,0,hyper_parameters)
-
-
-    for epoch in tqdm(range(1,11)):
+    for epoch in range(1,11):
       # train
         start_time = datetime.now()
         total_loss = 0
-        model.train()
+        #model.train()
         for batch in tqdm(train_together_and_claim_loader):
-            model.zero_grad()
-            together_ids, together_masks, claim_ids, claim_masks, labels = batch
 
+            together_ids, together_masks, claim_ids, claim_masks, labels = batch
             together_ids = together_ids.to(device)
             together_masks = together_masks.to(device)
             claim_ids = claim_ids.to(device)
@@ -248,9 +239,13 @@ def train_consistency(batch_size,lr,eps):
                         claim_masks,
                         labels
                         )
+
+            optimizer.zero_grad()
+            model.zero_grad()
+
             loss.backward()
-            total_loss += loss.item()
             optimizer.step()
+            total_loss += loss.item()
         # test and save
 
         y_true, y_pred = test_consistency_model(model, test_together_and_claim_loader, device)
@@ -260,7 +255,8 @@ def train_consistency(batch_size,lr,eps):
         weighted_f1 = f1_score(y_true, y_pred, average='weighted')
         precision = precision_score(y_true, y_pred)
         recall = recall_score(y_true, y_pred)
-
+        print(f'epoch:{epoch},loss:{total_loss},precision:{precision}'
+              f',f1:{weighted_f1} ,recall:{recall},{total_seconds} seconds')
         add_to_result_csv(total_loss,weighted_f1,precision,recall,total_seconds,epoch,hyper_parameters)
         #                  loss     ,f1         ,precision,recall ,seconds     ,epoch,hp)
 #%%
@@ -278,8 +274,8 @@ def tested(df,bs,lr,eps)->bool:
 if __name__ == '__main__':
     searched_already = pd.read_csv('/home/ido/data/idc/advanced ml/final_project/bert_consistency_hp_opt.csv')
     hyper_parameters = {'batch_size':[6],
-                        'lr' : [0.001*i for i in (10,5,2,1,0.1)],
-                        'eps' : [1e-8*i for i in (10,5,2,1,0.1)]
+                        'lr' : [2e-5*i for i in (1,0.1,2,5,10)],
+                        'eps' : [1e-8*i for i in (1,0.1,2,5,10)]
                         }
 
 
