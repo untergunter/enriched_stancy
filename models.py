@@ -60,5 +60,49 @@ class DoubleLoss(nn.Module):
         return predicted
 
 
+class Rnn(nn.Module):
+    def __init__(self):
+        super(Rnn, self).__init__()
+        self.fc_1 = nn.Linear(68, 68)
+        self.hidden = nn.Linear(68, 34)
+        self.out = nn.Linear(68, 2)
+        self.hidden_layer = self.init_hidden()
+        self.activation = torch.tanh
+
+    def init_hidden(self):
+        return torch.zeros(34)
+
+    def reset_hidden_layer(self):
+        self.hidden_layer = self.init_hidden()
+
+    def forward(self, x):
+        x = torch.cat([self.hidden_layer.flatten(), x.flatten()])
+        x = self.activation(self.fc_1(x))
+        self.hidden_layer = self.activation(self.hidden(x))
+        out = self.out(x)
+        return out
+
+class RnnClaimPerspective(nn.Module):
+    def __init__(self):
+        super(RnnClaimPerspective, self).__init__()
+        self.fc_1 = nn.Linear(70, 70)
+        self.hidden = nn.Linear(70, 35)
+        self.out = nn.Linear(70, 2)
+        self.hidden_layer = self.init_hidden()
+        self.activation = torch.tanh
+
+    def init_hidden(self):
+        return torch.zeros(35)
+
+    def reset_hidden_layer(self):
+        self.hidden_layer = self.init_hidden()
+
+    def forward(self, x):
+        x = torch.cat([self.hidden_layer.flatten(), x.flatten()])
+        x = self.activation(self.fc_1(x))
+        self.hidden_layer = self.activation(self.hidden(x))
+        out = self.out(x)
+        return out
+
 if __name__ == '__main__':
     pass

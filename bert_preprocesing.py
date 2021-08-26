@@ -39,7 +39,7 @@ def make_2_kinds_data_set(raw_data,batch_size:int=24):
     perspective = raw_data['perspective'].str.strip() + ' [SEP]'
     together = claim + perspective
 
-    label =[1 if single_label=='supports' else 0 for single_label in raw_data['stance_label_3'] ]
+    label =[1 if single_label=='supports' else 0 for single_label in raw_data['stance_label_3']]
 
     preprocessor = make_tokenizer()
 

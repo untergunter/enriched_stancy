@@ -54,6 +54,8 @@ def get_train_dev_test():
     dev = claim_pres_split[claim_pres_split['split']=='dev']
     return train,dev,test
 
+
+
 def get_paper_train_dev_test():
     all_tsv = glob('./**/*.tsv', recursive=True)
     dev = find_file(all_tsv,'dev.tsv')
