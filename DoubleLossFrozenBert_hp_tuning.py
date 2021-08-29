@@ -11,7 +11,7 @@ from torch.nn import CrossEntropyLoss, CosineEmbeddingLoss
 from sklearn.metrics import f1_score,recall_score,precision_score
 from tqdm import tqdm
 from models import DoubleLossFrozenBert
-
+from torch.optim import Adam
 #%%
 
 def test_consistency_model(model, dataloader, device):
@@ -148,7 +148,9 @@ def add_to_result_csv(loss,f1,precision,
 
 
 def train_consistency(batch_size,lr,eps):
-    hyper_parameters = {'batch_size':batch_size,'lr':lr,'eps':eps,'dropout':0.1}
+    hyper_parameters = {'batch_size':batch_size,
+                        'lr':lr,'eps':eps,
+                        'dropout':0.1,'optimizer':'Adam'}
 
     train, dev, test = get_paper_train_dev_test()
     train_together_only_loader, train_together_and_claim_loader = \
@@ -160,11 +162,11 @@ def train_consistency(batch_size,lr,eps):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = DoubleLossFrozenBert(device).to(device)
-    optimizer = AdamW(model.parameters(),
-                      lr=lr,
-                      eps=eps
-                      )
-
+    # optimizer = AdamW(model.parameters(),
+    #                   lr=lr,
+    #                   eps=eps
+    #                   )
+    optimizer = Adam(model.parameters(),lr = lr)
     for epoch in range(1,11):
       # train
         start_time = datetime.now()
@@ -221,8 +223,8 @@ def tested(df,bs,lr,eps)->bool:
 if __name__ == '__main__':
     searched_already = pd.read_csv('/home/ido/data/idc/advanced ml/final_project/bert_frozen_hp_opt.csv')
     hyper_parameters = {'batch_size':[6],
-                        'lr' : [2e-5*i for i in (0.5,1,1.5)],
-                        'eps' : [1e-8*i for i in (0.5,1,2)],
+                        'lr' : [1e-3*i for i in (1,11)],
+                        'eps' : [-1],
                         }
 
 

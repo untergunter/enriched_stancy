@@ -118,8 +118,9 @@ class DoubleLossFrozenBert(nn.Module):
                                               config=bert_config)
         for param in self.bert.parameters():
             param.requires_grad = False
-        self.fc_1 = nn.Linear(769, 769)
-        self.stance = nn.Linear(769, 2)
+        self.fc_1 = nn.Linear(768, 768)
+        self.fc_2 = nn.Linear(768, 768)
+        self.stance = nn.Linear(768*2 +1, 2)
         self.cosine = nn.CosineSimilarity()
         self.dropout = nn.Dropout(0.1)
         self.similarity_cosine_loss = CosineEmbeddingLoss()
@@ -128,15 +129,19 @@ class DoubleLossFrozenBert(nn.Module):
     def forward(self, both_ids, both_mask, claim_ids, claim_mask,labels = None):
 
         both_hs = self.bert(both_ids, attention_mask=both_mask).pooler_output
+        both_hs = F.relu(self.fc_1(both_hs))
+        both_hs = F.relu(self.fc_2(both_hs))
         both_hs = self.dropout(both_hs)
 
-        claim_hs = self.bert(claim_ids, attention_mask=claim_mask).pooler_output
+        claim_hs = self.bert(claim_ids,
+                             attention_mask=claim_mask).pooler_output
+        claim_hs = F.relu(self.fc_1(claim_hs))
+        claim_hs = F.relu(self.fc_2(claim_hs))
         claim_hs = self.dropout(claim_hs)
 
         cos_sim = self.cosine(both_hs, claim_hs).unsqueeze(1)
-        combined = torch.cat([both_hs, cos_sim], dim=1)
+        combined = torch.cat([both_hs,claim_hs, cos_sim], dim=1)
 
-        combined = F.relu(self.fc_1(combined))
         probabilities = self.stance(combined)
 
         if labels is not None:
