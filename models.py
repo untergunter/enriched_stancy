@@ -171,6 +171,95 @@ class DoubleLossFrozenBert(nn.Module):
         _, predicted = torch.max(probabilities, 1)
         return predicted
 
+class DoubleLossSentiment(DoubleLoss):
+
+    def __init__(self,device, bert_version='bert-base-uncased', dropout=0.1):
+
+        super(DoubleLossSentiment, self).__init__(device)
+
+        self.stance = nn.Linear(770, 3)
+        self.dropout = nn.Dropout(dropout)
+        # self.stance = nn.Linear(1026, 3)
+
+    def forward(self, both_ids, both_mask, claim_ids, claim_mask,labels = None, sentiment_labels=None):
+
+        both_hs = self.bert(both_ids, attention_mask=both_mask).pooler_output
+        both_hs = self.dropout(both_hs)
+
+        claim_hs = self.bert(claim_ids, attention_mask=claim_mask).pooler_output
+
+        cos_sim = self.cosine(both_hs, claim_hs).unsqueeze(1)
+        sentiment_labels = sentiment_labels.unsqueeze(1)
+        combined = torch.cat([both_hs, cos_sim, sentiment_labels], dim=1)
+
+        probabilities = self.stance(combined)
+
+        if labels is not None:
+
+            # first loss
+
+            stance_loss = \
+                self.stance_loss_func(probabilities.view(-1,3),
+                                 labels.view(-1))
+
+            # second loss
+            similarity_labels = torch.ones(labels.shape,device=self.device)
+            similarity_labels[ labels == 0] = -1
+
+            loss_claim = self.similarity_cosine_loss(both_hs,
+                                                 claim_hs,
+                                                 similarity_labels.float())
+
+            loss = stance_loss + loss_claim
+
+            return loss
+
+        return combined, probabilities
+
+    def predict(self,both_ids, both_mask, claim_ids, claim_mask, sentiment_labels):
+        combined, probabilities = self.forward(both_ids, both_mask, claim_ids, claim_mask, sentiment_labels=sentiment_labels)
+        _, predicted = torch.max(probabilities, 1)
+        return predicted
+
+
+class SingleLossSentiment(nn.Module):
+
+    def __init__(self,device, dropout=0.1):
+        super(SingleLossSentiment, self).__init__()
+        self.device = device
+
+        bert_config = BertConfig.from_pretrained('bert-base-uncased',
+                                                 output_hidden_states=True)
+        self.bert = BertModel.from_pretrained('bert-base-uncased',
+                                              config=bert_config)
+        self.stance = nn.Linear(769, 2)
+        self.dropout = nn.Dropout(dropout)
+        self.stance_loss_func = CrossEntropyLoss()
+
+    def forward(self, ids, mask, labels=None, sentiment_labels=None):
+
+        both_hs = self.bert(ids, attention_mask=mask).pooler_output
+        both_hs = self.dropout(both_hs)
+        sentiment_labels = sentiment_labels.unsqueeze(1)
+
+        combined = torch.cat([both_hs, sentiment_labels], dim=1)
+        probabilities = self.stance(combined)
+
+        if labels is not None:
+
+            stance_loss = \
+                self.stance_loss_func(probabilities.view(-1,2),
+                                 labels.view(-1))
+            return stance_loss
+
+        return combined, probabilities
+
+    def predict(self,ids, mask, sentiment_labels):
+        combined, probabilities = self.forward(ids, mask, sentiment_labels=sentiment_labels)
+        _, predicted = torch.max(probabilities, 1)
+        return predicted
+
+
 if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     a = DoubleLossFrozenBert(device)

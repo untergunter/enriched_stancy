@@ -6,6 +6,8 @@ from sklearn import preprocessing
 import torch
 from torch.utils.data import TensorDataset,DataLoader,RandomSampler
 
+from transformers import pipeline
+sentiment_analysis = pipeline("sentiment-analysis")
 
 def make_tokenizer():
     tknzr = BertTokenizer.from_pretrained('bert-base-uncased')
@@ -75,6 +77,56 @@ def make_2_kinds_data_set(raw_data,batch_size:int=24):
 
     return together_only_loader,together_and_claim_loader
 
+def sent(text):
+
+    return 0 if sentiment_analysis(text)[0]['label'] == 'NEGATIVE' else 1
+
+
+def make_2_kinds_data_set_with_sentiment(raw_data,batch_size:int=24, bert_version='bert-base-uncased'):
+
+    claim = '[CLS] ' + raw_data['text'].str.strip() + ' [SEP]'
+    perspective = raw_data['perspective'].str.strip() + ' [SEP]'
+    together = claim + perspective
+    label =[1 if single_label=='supports' else 0 for single_label in raw_data['stance_label_3'] ]
+
+    preprocessor = make_tokenizer()
+
+    claim_ids,claim_masks = preprocessor(claim)
+    together_ids,together_masks = preprocessor(together)
+
+    labels = torch.tensor(label)
+
+    sentiment = raw_data['perspective'].apply(sent)
+    sentiments = torch.tensor(sentiment.tolist())
+
+    together_only_dataset = TensorDataset(together_ids,
+                                          together_masks,
+                                          labels, sentiments)
+
+
+    together_and_claim_dataset = TensorDataset(together_ids,
+                                               together_masks,
+                                               claim_ids,
+                                               claim_masks,
+                                               labels, sentiments)
+
+    together_only_loader = DataLoader(
+        together_only_dataset,
+        sampler=RandomSampler(together_only_dataset),
+        batch_size=batch_size
+    )
+
+    together_and_claim_loader = DataLoader(
+        together_and_claim_dataset,
+        sampler=RandomSampler(together_and_claim_dataset),
+        batch_size=batch_size
+    )
+
+    # together_only_loader->claim_ids, claim_masks, labels
+    # together_and_claim_loader->together_ids,together_masks,
+    # claim_ids,claim_masks,labels
+
+    return together_only_loader,together_and_claim_loader
 
 if __name__ =='__main__':
 
