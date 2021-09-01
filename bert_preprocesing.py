@@ -5,7 +5,8 @@ import numpy as np
 from sklearn import preprocessing
 import torch
 from torch.utils.data import TensorDataset,DataLoader,RandomSampler
-
+from nltk import word_tokenize,pos_tag,download
+download('averaged_perceptron_tagger')
 
 def make_tokenizer():
     tknzr = BertTokenizer.from_pretrained('bert-base-uncased')
@@ -74,6 +75,11 @@ def make_2_kinds_data_set(raw_data,batch_size:int=24):
     # claim_ids,claim_masks,labels
 
     return together_only_loader,together_and_claim_loader
+
+def make_2_datasets_with_part_of_speech(raw_data,batch_size:int=8):
+    """ this function adds part of speech to the
+    sentences and then gets their id's"""
+
 
 
 if __name__ =='__main__':

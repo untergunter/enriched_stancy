@@ -113,5 +113,6 @@ class PosRnnDataSet(Dataset):
     def __getitem__(self, index):
         return self.lines[index],self.targets[index]
 
+
 if __name__ == '__main__':
     pass
