@@ -40,3 +40,53 @@ def test_consistency_model(model, dataloader, device):
             y_true += [int(label) for label in labels]
             y_pred += [int(label) for label in model_prediction]
     return y_true,y_pred
+
+
+
+
+def test_consistency_sentiment_model(model, dataloader, device):
+    y_true = []
+    y_pred = []
+    model.eval()
+    with torch.no_grad():
+        for batch in dataloader:
+            together_ids, together_masks, claim_ids, claim_masks, labels, sentiment_labels = batch
+            together_ids = together_ids.to(device)
+            together_masks = together_masks.to(device)
+            claim_ids = claim_ids.to(device)
+            claim_masks = claim_masks.to(device)
+            labels = labels.to(device)
+            sentiments = sentiment_labels.to(device)
+
+
+            model_prediction = model.predict(together_ids,
+                              together_masks,
+                              claim_ids,
+                              claim_masks,
+                              sentiment_labels=sentiments
+                              )
+            y_true += [int(label) for label in labels]
+            y_pred += [int(label) for label in model_prediction]
+    return y_true,y_pred
+
+
+def test_basic_sentiment_model(model, dataloader, device):
+    y_true = []
+    y_pred = []
+    model.eval()
+    with torch.no_grad():
+        for batch in dataloader:
+            ids, masks, labels, sentiment_labels = batch
+            ids = ids.to(device)
+            masks = masks.to(device)
+            labels = labels.to(device)
+            sentiments = sentiment_labels.to(device)
+
+            model_prediction = model.predict(ids,
+                              masks,
+                              sentiment_labels=sentiments
+                              )
+            y_true += [int(label) for label in labels]
+            y_pred += [int(label) for label in model_prediction]
+
+    return y_true, y_pred
