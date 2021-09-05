@@ -9,3 +9,7 @@ the training and evaluation pipeline has a few parts:
     models.py - holds the different architectures we used.
     consistency_ps_hp_tuning.py - consistency + part of speech model training
     bert_sentiment.py - consistency + sentiment model training
+
+    to run an example on google-colab open Hyper_parameter_tuning.ipynb
+
+4. the results of the different hyper-parameter searches are at "results" folder.
