@@ -1,5 +1,5 @@
 import pandas as pd
-from bert_preprocesing import get_train_dev_test
+from bert_preprocessing import get_train_dev_test
 from nltk import word_tokenize,pos_tag,download
 download('averaged_perceptron_tagger')
 from collections import Counter

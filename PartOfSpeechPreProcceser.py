@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from torch.utils.data import TensorDataset,DataLoader,RandomSampler
 from nltk import word_tokenize,pos_tag,download
-from bert_preprocesing import make_tokenizer
+from bert_preprocessing import make_tokenizer
 download('averaged_perceptron_tagger')
 
 class PartOfSpeechDataSet:

@@ -1,4 +1,4 @@
-from bert_preprocesing import make_2_kinds_data_set, make_2_kinds_data_set_with_sentiment
+from bert_preprocessing import make_2_kinds_data_set, make_2_kinds_data_set_with_sentiment
 from prep import get_paper_train_dev_test
 from models import DoubleLoss, DoubleLossSentiment, SingleLossSentiment
 from test_model import test_consistency_model, test_consistency_sentiment_model, test_basic_sentiment_model

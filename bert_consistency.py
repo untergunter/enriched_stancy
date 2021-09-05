@@ -1,4 +1,4 @@
-from bert_preprocesing import make_2_kinds_data_set
+from bert_preprocessing import make_2_kinds_data_set
 from prep import get_paper_train_dev_test
 from models import DoubleLoss
 from test_model import test_consistency_model

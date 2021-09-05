@@ -1,6 +1,6 @@
 import pandas as pd
 
-from bert_preprocesing import make_2_kinds_data_set
+from bert_preprocessing import make_2_kinds_data_set
 from prep import get_paper_train_dev_test
 from test_model import test_basic_model
 from transformers import BertForSequenceClassification,AdamW
