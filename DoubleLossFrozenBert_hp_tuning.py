@@ -221,7 +221,7 @@ def tested(df,bs,lr,eps)->bool:
     return test_done
 
 if __name__ == '__main__':
-    searched_already = pd.read_csv('/home/ido/data/idc/advanced ml/final_project/bert_frozen_hp_opt.csv')
+    searched_already = pd.read_csv('/results/bert_frozen_hp_opt.csv')
     hyper_parameters = {'batch_size':[6],
                         'lr' : [1e-3*i for i in (1,11)],
                         'eps' : [-1],

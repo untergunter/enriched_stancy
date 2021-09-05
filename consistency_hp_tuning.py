@@ -272,7 +272,7 @@ def tested(df,bs,lr,eps)->bool:
     return test_done
 
 if __name__ == '__main__':
-    searched_already = pd.read_csv('/home/ido/data/idc/advanced ml/final_project/bert_consistency_hp_opt.csv')
+    searched_already = pd.read_csv('/results/bert_consistency_hp_opt.csv')
     hyper_parameters = {'batch_size':[6],
                         'lr' : [2e-5*i for i in (1,0.1,2,5,10)],
                         'eps' : [1e-8*i for i in (1,0.1,2,5,10)]
